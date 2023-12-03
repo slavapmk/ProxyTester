@@ -13,13 +13,13 @@ import kotlin.system.exitProcess
 
 
 private const val timeout = 10L
-private const val attempts = 10
+private const val attempts = 500
 private const val check = "https://api.openai.com"
 
 fun main() {
     val data = File("data.csv").bufferedReader().use { it.readText() }
 
-    val proxies = mutableListOf<Pair<String, Proxy.Type>>()
+    val proxies = mutableListOf<Triple<String, Proxy.Type, String>>()
     for (s in data.splitToSequence('\n')) {
         val url = s.splitToSequence(',').first()
         val splitToSequence = url.split("://")
@@ -33,18 +33,19 @@ fun main() {
         else
             Proxy.Type.DIRECT
 
-        proxies.add(Pair(host, type))
+        proxies.add(Triple(host, type, url))
     }
 
 
     val threads = mutableListOf<Thread>()
-    val result = TreeMap<Long, Pair<String, Proxy.Type>>()
+    val result = TreeMap<Long, Triple<String, Proxy.Type, String>>()
 
     val state = AtomicInteger()
 
     for (proxy in proxies) {
         val proxyHost = proxy.first
         val proxyType = proxy.second
+        val proxyUrl = proxy.third
         val thread = Thread {
             val split = proxyHost.split(':')
 
@@ -77,8 +78,9 @@ fun main() {
                     val endTime = System.currentTimeMillis()
                     sumTimes += (endTime - startTime)
                     lenTimes++
+                    Thread.sleep(500)
                 }
-                result[sumTimes / lenTimes] = Pair(proxyHost, proxyType)
+                result[sumTimes / lenTimes] = Triple(proxyHost, proxyType, proxyUrl)
                 "SUC"
             } catch (_: Exception) {
                 "ERR"
@@ -95,7 +97,7 @@ fun main() {
     }
     println()
     for (s in result) {
-        println("${s.key}ms\t${s.value.second}\t${s.value.first}")
+        println("${s.key}ms\t${s.value.second}\t${s.value.first}\t${s.value.third}")
     }
     exitProcess(0)
 }

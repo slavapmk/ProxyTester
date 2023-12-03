@@ -5,7 +5,7 @@ plugins {
     application
 }
 
-group = "ru.slavapmk.ignat"
+group = "ru.slavapmk.proxychecker"
 version = "0.1"
 
 tasks.withType<Jar> {
@@ -29,5 +29,5 @@ dependencies {
 }
 
 application {
-    mainClass.set("ru.slavapmk.ignat.MainKt")
+    mainClass.set("ru.slavapmk.proxychecker.MainKt")
 }
