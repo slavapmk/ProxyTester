@@ -6,15 +6,18 @@ import okhttp3.logging.HttpLoggingInterceptor
 import java.io.File
 import java.net.InetSocketAddress
 import java.net.Proxy
-import java.util.TreeMap
+import java.util.*
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
+import kotlin.math.roundToInt
 import kotlin.system.exitProcess
 
 
-private const val timeout = 10L
-private const val attempts = 500
-private const val check = "https://api.openai.com"
+private const val timeout: Long = 10
+private const val attempts = 5
+private const val sleep: Long = 5
+private const val checkUrl = "https://api.openai.com"
+
 
 fun main() {
     val data = File("data.csv").bufferedReader().use { it.readText() }
@@ -38,7 +41,7 @@ fun main() {
 
 
     val threads = mutableListOf<Thread>()
-    val result = TreeMap<Long, Triple<String, Proxy.Type, String>>()
+    val result = TreeMap<Long, ScanResult>()
 
     val state = AtomicInteger()
 
@@ -68,23 +71,34 @@ fun main() {
                     connectTimeout(timeout, TimeUnit.SECONDS)
                 }.build()
 
-            val status = try {
-                val request = Request.Builder().url(check).build()
-                var sumTimes = 0L
-                var lenTimes = 0
-                for (i in 0..attempts) {
+
+            val request = Request.Builder().url(checkUrl).build()
+            var sumTimes = 0L
+            var lenTimes = 0
+            for (i in 1..attempts) {
+                try {
                     val startTime = System.currentTimeMillis()
                     cl.newCall(request).execute().close()
                     val endTime = System.currentTimeMillis()
                     sumTimes += (endTime - startTime)
                     lenTimes++
-                    Thread.sleep(500)
+                    Thread.sleep(sleep)
+                } catch (_: Exception) {
+
                 }
-                result[sumTimes / lenTimes] = Triple(proxyHost, proxyType, proxyUrl)
-                "SUC"
-            } catch (_: Exception) {
-                "ERR"
             }
+            val status = if (lenTimes == 0) {
+                "ERR"
+            } else {
+                result[sumTimes / lenTimes] = ScanResult(
+                    proxyHost,
+                    proxyType,
+                    proxyUrl,
+                    (lenTimes.toDouble() / attempts * 100).roundToInt()
+                )
+                "SUC"
+            }
+
             println("${state.incrementAndGet()}\t/ ${proxies.size}\t$status")
         }
 
@@ -96,8 +110,24 @@ fun main() {
         thread.join()
     }
     println()
+
+    val buffer = arrayOfNulls<String>(result.size)
+
+    var i = 0
     for (s in result) {
-        println("${s.key}ms\t${s.value.second}\t${s.value.first}\t${s.value.third}")
+        println("${s.key}ms\t${s.value.proxyEfficiency}\t${s.value.proxyHost}\t${s.value.proxyType}\t${s.value.proxyUrl}")
+        buffer[i] =
+            "${s.key}ms;${s.value.proxyEfficiency};${s.value.proxyHost};${s.value.proxyType};${s.value.proxyUrl}"
+        i++
     }
+    File("out.csv").writeText(buffer.joinToString("\n"))
     exitProcess(0)
 }
+
+
+data class ScanResult(
+    val proxyHost: String,
+    val proxyType: Proxy.Type,
+    val proxyUrl: String,
+    val proxyEfficiency: Int
+)
