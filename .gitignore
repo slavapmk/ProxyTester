@@ -3,5 +3,5 @@ build/
 .gradle/
 storage/
 caches/
-data.csv
+out.csv
 gradle.properties

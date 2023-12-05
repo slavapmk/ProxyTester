@@ -14,9 +14,9 @@ import kotlin.system.exitProcess
 
 
 private const val timeout: Long = 10
-private const val attempts = 5
-private const val sleep: Long = 5
-private const val checkUrl = "https://api.openai.com"
+private const val attempts = 15
+private const val sleep: Long = 0
+private const val checkUrl = "https://ya.ru/"
 
 
 fun main() {
@@ -34,7 +34,7 @@ fun main() {
         else if (typeId.startsWith("http"))
             Proxy.Type.HTTP
         else
-            Proxy.Type.DIRECT
+            continue
 
         proxies.add(Triple(host, type, url))
     }
@@ -106,21 +106,23 @@ fun main() {
         thread.start()
     }
 
+    Runtime.getRuntime().addShutdownHook(Thread {
+        println()
+        val buffer = arrayOfNulls<String>(result.size)
+
+        var i = 0
+        for (s in result) {
+            println("${s.key}ms\t${s.value.proxyEfficiency}\t${s.value.proxyHost}\t${s.value.proxyType}\t${s.value.proxyUrl}")
+            buffer[i] = "${s.key}ms;${s.value.proxyEfficiency};${s.value.proxyHost};${s.value.proxyType};${s.value.proxyUrl}"
+            i++
+        }
+        File("out.csv").writeText(buffer.joinToString("\n"))
+    })
+
     for (thread in threads) {
         thread.join()
     }
-    println()
 
-    val buffer = arrayOfNulls<String>(result.size)
-
-    var i = 0
-    for (s in result) {
-        println("${s.key}ms\t${s.value.proxyEfficiency}\t${s.value.proxyHost}\t${s.value.proxyType}\t${s.value.proxyUrl}")
-        buffer[i] =
-            "${s.key}ms;${s.value.proxyEfficiency};${s.value.proxyHost};${s.value.proxyType};${s.value.proxyUrl}"
-        i++
-    }
-    File("out.csv").writeText(buffer.joinToString("\n"))
     exitProcess(0)
 }
 
