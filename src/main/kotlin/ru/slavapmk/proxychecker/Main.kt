@@ -16,8 +16,8 @@ typealias Sec = Long
 typealias Ms = Long
 
 private const val timeout: Sec = 10
-private const val attempts = 10000
-private const val sleep: Ms = 1000
+private const val attempts = 100000
+private const val sleep: Ms = 100
 private const val checkUrl = "https://ya.ru/"
 
 
