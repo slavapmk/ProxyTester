@@ -1,0 +1,9 @@
+version: '3'
+
+services:
+  checker:
+    build: .
+    volumes:
+      - ./storage:/app/storage
+      - ./build:/app/build
+      - ./caches:/home/gradle/.gradle/caches

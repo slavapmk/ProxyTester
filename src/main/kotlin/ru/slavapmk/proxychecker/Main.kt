@@ -12,15 +12,17 @@ import java.util.concurrent.atomic.AtomicInteger
 import kotlin.math.roundToInt
 import kotlin.system.exitProcess
 
+typealias Sec = Long
+typealias Ms = Long
 
-private const val timeout: Long = 10
-private const val attempts = 15
-private const val sleep: Long = 0
+private const val timeout: Sec = 10
+private const val attempts = 10000
+private const val sleep: Ms = 1000
 private const val checkUrl = "https://ya.ru/"
 
 
 fun main() {
-    val data = File("data.csv").bufferedReader().use { it.readText() }
+    val data = File("storage/data.csv").bufferedReader().use { it.readText() }
 
     val proxies = mutableListOf<Triple<String, Proxy.Type, String>>()
     for (s in data.splitToSequence('\n')) {
@@ -116,7 +118,7 @@ fun main() {
             buffer[i] = "${s.key}ms;${s.value.proxyEfficiency};${s.value.proxyHost};${s.value.proxyType};${s.value.proxyUrl}"
             i++
         }
-        File("out.csv").writeText(buffer.joinToString("\n"))
+        File("storage/out.csv").writeText(buffer.joinToString("\n"))
     })
 
     for (thread in threads) {
