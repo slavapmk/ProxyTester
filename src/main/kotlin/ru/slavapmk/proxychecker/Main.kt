@@ -46,6 +46,8 @@ fun main() {
     val result = TreeMap<Long, ScanResult>()
 
     val state = AtomicInteger()
+    val maxCount = attempts * proxies.size
+    var lastPercent: Double = -1.0
 
     for (proxy in proxies) {
         val proxyHost = proxy.first
@@ -87,21 +89,23 @@ fun main() {
                     Thread.sleep(sleep)
                 } catch (_: Exception) {
 
+                } finally {
+                    val incrementAndGet = state.incrementAndGet()
+                    val percent = (incrementAndGet.toDouble() / maxCount * 100000).roundToInt().toDouble() / 1000
+                    if (lastPercent != percent) {
+                        lastPercent = percent
+                        println("$incrementAndGet\t/ $maxCount\t$percent%")
+                    }
                 }
             }
-            val status = if (lenTimes == 0) {
-                "ERR"
-            } else {
+            if (lenTimes != 0) {
                 result[sumTimes / lenTimes] = ScanResult(
                     proxyHost,
                     proxyType,
                     proxyUrl,
                     (lenTimes.toDouble() / attempts * 100).roundToInt()
                 )
-                "SUC"
             }
-
-            println("${state.incrementAndGet()}\t/ ${proxies.size}\t$status")
         }
 
         threads.add(thread)
@@ -115,7 +119,8 @@ fun main() {
         var i = 0
         for (s in result) {
             println("${s.key}ms\t${s.value.proxyEfficiency}\t${s.value.proxyHost}\t${s.value.proxyType}\t${s.value.proxyUrl}")
-            buffer[i] = "${s.key}ms;${s.value.proxyEfficiency};${s.value.proxyHost};${s.value.proxyType};${s.value.proxyUrl}"
+            buffer[i] =
+                "${s.key}ms;${s.value.proxyEfficiency};${s.value.proxyHost};${s.value.proxyType};${s.value.proxyUrl}"
             i++
         }
         File("storage/out.csv").writeText(buffer.joinToString("\n"))
